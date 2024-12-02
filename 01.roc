@@ -1,12 +1,13 @@
 app [main] { pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.17.0/lZFLstMUCUvd5bjnnpYromZJXkQUrdhbva4xdBInicE.tar.br" }
 
 import pf.Stdout
-import pf.File
+# import pf.File
+import "data/inputs/01.txt" as input : Str
 
 main =
-    input =
-        File.readUtf8 "data/inputs/01.txt" # |> Task.onErr \_ -> Task.ok "ciao" # task errors can be recovered like this with a default value
-        |> Task.await! Task.ok # this is equivalent of using ! on the last task
+    # input =
+    #    File.readUtf8 "data/inputs/01.txt" # |> Task.onErr \_ -> Task.ok "ciao" # task errors can be recovered like this with a default value
+    #    |> Task.await! Task.ok # this is equivalent of using ! on the last task
     Stdout.line! "part 1: $(Inspect.toStr (part1 input))" # 2430334
     Stdout.line! "part 2: $(Inspect.toStr (part2 input))" # 28786472
 
@@ -22,16 +23,16 @@ example =
 
 # Solutions
 
-part1 = \input ->
-    input
+part1 = \text ->
+    text
     |> inputToLists
     |> distances
     |> List.walk 0 Num.add
 
 expect part1 example == 11
 
-part2 = \input ->
-    (left, right) = inputToLists input
+part2 = \text ->
+    (left, right) = inputToLists text
     similarities (left, right)
     |> List.map2 left \s, l -> s * l
     |> List.sum
@@ -40,8 +41,8 @@ expect part2 example == 31
 
 # Utils
 
-inputToLists = \input ->
-    input
+inputToLists = \text ->
+    text
     |> Str.splitOn "\n"
     |> List.map \l -> l
         |> Str.splitOn "   "

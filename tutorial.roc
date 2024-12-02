@@ -117,3 +117,11 @@ expect getLetter "1" == Ok "b"
 
 # debug a roc value
 # use `Inspect.toStr a` to inspect any Inpect type
+
+# an open record type has a `*` at the end allowing for any record containing at least the needed fields
+# fullName : { firstName : Str, lastName : Str }* -> Str
+
+# a contained record permits to specify the return record is like the input
+#addHttps : { url : Str }a -> { url : Str }a
+#addHttps = \record ->
+#    { record & url: "https://$(record.url)" } # this is how you update a record field
