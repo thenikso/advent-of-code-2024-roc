@@ -2,7 +2,7 @@
 
 Learning [Roc](https://www.roc-lang.org/) with [AoC 2024](https://adventofcode.com/2024).
 
-## What I learned
+## What I learned about Roc
 
 I started by reading the [Roc tutorial](https://www.roc-lang.org/tutorial)
 and prepared `template.roc` for the coming days.
@@ -53,3 +53,10 @@ aList
 The last `List.dropIf` in this example works if it is indended or not but
 the logit will change drastically. It's probably best to use intermidiate
 variables in this case to avoid confusion.
+
+This is an issue I often find with functional languages: one is tempted to
+get too clever with the code (expecially function chaining) making it less readable.
+
+Really used `dbg` this time that, together with `expect` is crucial for  debugging.
+
+I like `when` clause guards.
