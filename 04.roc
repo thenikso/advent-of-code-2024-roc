@@ -6,7 +6,7 @@ import pf.File
 main =
     input = File.readUtf8! "data/inputs/04.txt"
     Stdout.line! "part 1: $(Inspect.toStr (part1 input))" # 2543
-    Stdout.line! "part 2: $(Inspect.toStr (part2 input))" #
+    Stdout.line! "part 2: $(Inspect.toStr (part2 input))" # 1930
 
 example =
     """
@@ -46,9 +46,32 @@ expect
     actual = part1 example
     actual == 18
 
-part2 = \input -> None
+part2 = \input ->
+    search = "MAS" |> Str.toUtf8
+    searchReverse = List.reverse search
+    searchLen = (search |> List.len) // 2 + 1
+    puzzle = parsePuzzle input
+    puzzle
+    |> List.walkWithIndex 0 \count, line, y ->
+        count
+        +
+        List.walkWithIndex line 0 \lineCount, char, x ->
+            if char != 'A' then
+                lineCount
+            else
+                hasFullX =
+                    xWaveCoordinates (x, y) searchLen
+                    |> List.map \wave ->
+                        List.keepOks wave \coord -> get2D puzzle coord
+                    |> List.keepIf \word ->
+                        word == search || word == searchReverse
+                    |> List.len
+                    == 2
+                lineCount + (if hasFullX then 1 else 0)
 
-expect part2 example == None
+expect
+    actual = part2 example
+    actual == 9
 
 # Utils
 
@@ -100,9 +123,7 @@ waveCoordinates = \dropPoint, cutOff ->
                     List.append wave (dropPoint.0 + depth, dropPoint.1 - depth)
 
                 _ -> empty
-    # Note: the indentation in this one was one level deeper producing
-    # a strange logic bug difficult to discover.
-    |> List.dropIf List.isEmpty
+    |> List.dropIf List.isEmpty # Note: the indentation in this one was one level deeper producing a strange logic bug difficult to discover.
 
 expect
     actual = waveCoordinates (1, 1) 2
@@ -132,3 +153,38 @@ get2D = \matrix, (x, y) ->
 expect
     actual = get2D [[0, 1], [2, 3]] (0, 1)
     actual == Ok 2
+
+xWaveCoordinates : Coordinate, U64 -> Matrix2D Coordinate
+xWaveCoordinates = \dropPoint, cutOff ->
+    List.range { start: At 0, end: Before cutOff }
+    |> List.walk [[], []] \state, depth ->
+        empty = []
+        List.mapWithIndex state \wave, dir ->
+            if depth == 0 then
+                List.append wave dropPoint
+            else if dropPoint.0 < depth || dropPoint.1 < depth then
+                empty
+            else
+                when dir is
+                    # top-left to bottom-right
+                    0 ->
+                        wave
+                        |> List.prepend (dropPoint.0 - depth, dropPoint.1 - depth)
+                        |> List.append (dropPoint.0 + depth, dropPoint.1 + depth)
+
+                    # top-right to bottom-left
+                    1 ->
+                        wave
+                        |> List.prepend (dropPoint.0 + depth, dropPoint.1 - depth)
+                        |> List.append (dropPoint.0 - depth, dropPoint.1 + depth)
+
+                    _ -> empty
+    |> List.dropIf List.isEmpty
+
+expect
+    actual = xWaveCoordinates (1, 1) 2
+    actual == [[(0, 0), (1, 1), (2, 2)], [(2, 0), (1, 1), (0, 2)]]
+
+expect
+    actual = xWaveCoordinates (0, 0) 2
+    actual == []

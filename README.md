@@ -34,3 +34,22 @@ technique in creating a tag union to represent the possible instructions.
 Once again, being able to test the functions directly in the same code file
 came in handy. Also using [`dbg`](https://www.roc-lang.org/tutorial#dbg) is
 really useful, much like one would use `console.log` in js.
+
+### Day 4
+
+Much more complex! I had to do a O2 as the naive solution but it works.
+
+Fount out that the indentation when chaining with `|>` may become problematic
+if the previous operation is too long.
+
+```
+aList
+|> List.walk ...
+    List.walk ...
+    ...lots of code...
+    |> List.dropIf ...
+```
+
+The last `List.dropIf` in this example works if it is indended or not but
+the logit will change drastically. It's probably best to use intermidiate
+variables in this case to avoid confusion.
