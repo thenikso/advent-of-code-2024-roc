@@ -4,7 +4,7 @@ app [main] {
 }
 
 import pf.Stdout
-import parser.Parser exposing [const, keep, skip, oneOf, Parser, sepBy]
+import parser.Parser exposing [const, keep, skip, oneOf, Parser, sepBy, map2]
 import parser.String exposing [parseStr, string, digits]
 
 main =
@@ -29,12 +29,18 @@ parseGame = \s ->
     requirements = requirementSet |> sepBy (string "; ")
 
     game : Parser _ Game
+    # game =
+    #     const (\id -> \r -> { id, requirements: r })
+    #     |> skip (string "Game ")
+    #     |> keep digits
+    #     |> skip (string ": ")
+    #     |> keep requirements
+    # trying to use record builder syntax with this parser library
     game =
-        const (\id -> \r -> { id, requirements: r })
-        |> skip (string "Game ")
-        |> keep digits
-        |> skip (string ": ")
-        |> keep requirements
+        { map2 <-
+            id: const (\id -> id) |> skip (string "Game ") |> keep digits |> skip (string ": "),
+            requirements,
+        }
 
     when parseStr game s is
         Ok g -> Ok g
