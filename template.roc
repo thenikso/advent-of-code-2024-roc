@@ -1,12 +1,20 @@
-app [main] { pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.17.0/lZFLstMUCUvd5bjnnpYromZJXkQUrdhbva4xdBInicE.tar.br" }
+app [main] {
+    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.17.0/lZFLstMUCUvd5bjnnpYromZJXkQUrdhbva4xdBInicE.tar.br",
+    aoc: "./package/main.roc",
+}
 
 import pf.Stdout
 import pf.File
+import pf.Utc
+import aoc.AoC {
+    readfile: File.readUtf8,
+    stdout: Stdout.write,
+    time: \{} -> Utc.now {} |> Task.map Utc.toMillisSinceEpoch,
+}
 
 main =
-    input = File.readUtf8! "data/inputs/01.txt"
-    Stdout.line! "part 1: $(Inspect.toStr (part1 input))" #
-    Stdout.line! "part 2: $(Inspect.toStr (part2 input))" #
+    AoC.solve! "05" 1 part1 # 7198
+    AoC.solve! "05" 2 part2 # 4230
 
 example =
     """
