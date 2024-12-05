@@ -57,14 +57,15 @@ part2 = \input ->
     solveUntilCorrect = \update ->
         when correctUpdateMiddleValue update rules is
             Ok v -> v
-            Err [] -> 0 # not sure why these are produced
-            Err corrected -> solveUntilCorrect corrected
+            Err Invalid -> 0
+            Err (Corrected corrected) -> solveUntilCorrect corrected
 
     updates
     |> List.walk 0 \sum, update ->
         when correctUpdateMiddleValue update rules is
             Ok _ -> sum
-            Err corrected -> sum + (solveUntilCorrect corrected)
+            Err Invalid -> sum
+            Err (Corrected corrected) -> sum + (solveUntilCorrect corrected)
     |> Ok
 
 expect part2 example == Ok 123
@@ -136,12 +137,12 @@ expect
     (Dict.get testPuzzle.rules 1 == Ok [2, 4])
     && (testPuzzle.updates == [[1, 2, 3], [3, 4]])
 
-correctUpdateMiddleValue : Update, Rules -> Result U64 Update
+correctUpdateMiddleValue : Update, Rules -> Result U64 [Invalid, Corrected Update]
 correctUpdateMiddleValue = \update, rules ->
     updateMidpoint = (List.len update) // 2
     update
     |> List.walkWithIndexUntil
-        { before: [], res: Err [] }
+        { before: [], res: Err Invalid }
         \state, value, index ->
             res = if index == updateMidpoint then Ok value else state.res
             when Dict.get rules value is
@@ -156,18 +157,19 @@ correctUpdateMiddleValue = \update, rules ->
                                 |> List.append value
                                 |> List.concat others
                                 |> List.concat (update |> List.splitAt (index + 1) |> .others)
-                            Break { state & res: Err corrected }
+                            Break { state & res: Err (Corrected corrected) }
 
                         Err _ ->
                             Continue { res, before: List.append state.before value }
     |> .res
 
+expect (correctUpdateMiddleValue [] testPuzzle.rules) == Err Invalid
 expect (correctUpdateMiddleValue [1, 2, 3] testPuzzle.rules) == Ok 2
-expect (correctUpdateMiddleValue [2, 1, 3] testPuzzle.rules) == Err [1, 2, 3]
+expect (correctUpdateMiddleValue [2, 1, 3] testPuzzle.rules) == Err (Corrected [1, 2, 3])
 expect
     actual = correctUpdateMiddleValue [2, 4, 1, 3] testPuzzle.rules
-    actual == Err [1, 2, 4, 3]
+    actual == Err (Corrected [1, 2, 4, 3])
 expect
     actual = correctUpdateMiddleValue [1, 2, 4, 3] testPuzzle.rules
-    actual == Err [1, 2, 3, 4]
+    actual == Err (Corrected [1, 2, 3, 4])
 expect (correctUpdateMiddleValue [1, 2, 3, 4] testPuzzle.rules) == Ok 3
