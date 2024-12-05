@@ -60,3 +60,20 @@ get too clever with the code (expecially function chaining) making it less reada
 Really used `dbg` this time that, together with `expect` is crucial for  debugging.
 
 I like `when` clause guards.
+
+## Day 5
+
+Using `Dict`s! Very straight forward, `Dict.update` is quite usefult.
+No way to make a literal Dict for test? Closest way would be to use `Dict.fromList`.
+
+I've also used the `?` suguar to pass on a `Result` error and proceed with
+the `Ok` value instead. Glat to see it also works with `when` expressions like:
+
+```roc
+result = (
+  when something is
+    [a, b] -> Ok a
+    _ -> Err Invalid
+)?
+# `result` has the type of a, not Ok a because of the `?`
+```
