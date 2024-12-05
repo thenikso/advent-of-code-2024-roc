@@ -6,7 +6,7 @@ import pf.File
 main =
     input = File.readUtf8! "data/inputs/05.txt"
     Stdout.line! "part 1: $(Inspect.toStr (part1 input))" # 7198
-    Stdout.line! "part 2: $(Inspect.toStr (part2 input))" #
+    Stdout.line! "part 2: $(Inspect.toStr (part2 input))" # 4230
 
 example =
     """
@@ -51,9 +51,23 @@ part1 = \input ->
 
 expect part1 example == Ok 143
 
-part2 = \input -> None
+part2 = \input ->
+    { rules, updates } = parsePuzzle? input
 
-expect part2 example == None
+    solveUntilCorrect = \update ->
+        when correctUpdateMiddleValue update rules is
+            Ok v -> v
+            Err [] -> 0 # not sure why these are produced
+            Err corrected -> solveUntilCorrect corrected
+
+    updates
+    |> List.walk 0 \sum, update ->
+        when correctUpdateMiddleValue update rules is
+            Ok _ -> sum
+            Err corrected -> sum + (solveUntilCorrect corrected)
+    |> Ok
+
+expect part2 example == Ok 123
 
 # Utils
 
@@ -122,22 +136,38 @@ expect
     (Dict.get testPuzzle.rules 1 == Ok [2, 4])
     && (testPuzzle.updates == [[1, 2, 3], [3, 4]])
 
-correctUpdateMiddleValue : Update, Rules -> Result U64 [Incorrect]
+correctUpdateMiddleValue : Update, Rules -> Result U64 Update
 correctUpdateMiddleValue = \update, rules ->
     updateMidpoint = (List.len update) // 2
     update
     |> List.walkWithIndexUntil
-        { before: [], res: Err Incorrect }
+        { before: [], res: Err [] }
         \state, value, index ->
             res = if index == updateMidpoint then Ok value else state.res
             when Dict.get rules value is
                 Err _ -> Continue { res, before: List.append state.before value }
                 Ok rule ->
-                    if List.any state.before \b -> List.contains rule b then
-                        Break { state & res: Err Incorrect }
-                    else
-                        Continue { res, before: List.append state.before value }
+                    when List.findFirstIndex state.before \b -> List.contains rule b is
+                        Ok errIndex ->
+                            # TODO build corrected list
+                            { before, others } = List.splitAt state.before errIndex
+                            corrected =
+                                before
+                                |> List.append value
+                                |> List.concat others
+                                |> List.concat (update |> List.splitAt (index + 1) |> .others)
+                            Break { state & res: Err corrected }
+
+                        Err _ ->
+                            Continue { res, before: List.append state.before value }
     |> .res
 
 expect (correctUpdateMiddleValue [1, 2, 3] testPuzzle.rules) == Ok 2
-expect (correctUpdateMiddleValue [2, 1, 3] testPuzzle.rules) == Err Incorrect
+expect (correctUpdateMiddleValue [2, 1, 3] testPuzzle.rules) == Err [1, 2, 3]
+expect
+    actual = correctUpdateMiddleValue [2, 4, 1, 3] testPuzzle.rules
+    actual == Err [1, 2, 4, 3]
+expect
+    actual = correctUpdateMiddleValue [1, 2, 4, 3] testPuzzle.rules
+    actual == Err [1, 2, 3, 4]
+expect (correctUpdateMiddleValue [1, 2, 3, 4] testPuzzle.rules) == Ok 3
