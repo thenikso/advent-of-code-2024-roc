@@ -39,19 +39,16 @@ example =
 
 part1 = \input ->
     puzzle = parsePuzzle? input
-    guard = findGuard? puzzle
     { rows, cols } = Array2D.shape puzzle
     visited = Set.withCapacity (rows * cols)
     keepWalking = \(set, g) ->
         when walkToObstacle puzzle set g Set.insert is
             Ok res -> keepWalking res
             Err (Exits last) -> Set.len last
-
+    guard = findGuard? puzzle
     Ok (keepWalking (visited, guard))
 
-expect
-    actual = part1 example
-    actual == Ok 41
+expect part1 example == Ok 41
 
 part2 = \input ->
     puzzle = parsePuzzle? input
@@ -102,27 +99,20 @@ parsePuzzle = \text ->
         |> try
     Ok (Array2D.fromLists lists FitShortest)
 
-testPuzzle = parsePuzzle
-    """
-    .#
-    ^.
-    """
-
 expect
-    when testPuzzle is
-        Err _ -> Bool.false
-        Ok actual ->
-            Array2D.get actual { row: 0, col: 0 }
-            == Ok Empty
-            &&
-            Array2D.get actual { row: 0, col: 1 }
-            == Ok Obstruct
-            &&
-            Array2D.get actual { row: 1, col: 0 }
-            == Ok (Guard Up)
-            &&
-            Array2D.get actual { row: 1, col: 1 }
-            == Ok Empty
+    test = \{} ->
+        actual = parsePuzzle?
+            """
+            .#
+            ^.
+            """
+        Ok (
+            Array2D.get actual { row: 0, col: 0 } == Ok Empty,
+            Array2D.get actual { row: 0, col: 1 } == Ok Obstruct,
+            Array2D.get actual { row: 1, col: 0 } == Ok (Guard Up),
+            Array2D.get actual { row: 1, col: 1 } == Ok Empty,
+        )
+    test {} == Ok (Bool.true, Bool.true, Bool.true, Bool.true)
 
 GuardLocation : { position : Index2D, direction : Direction }
 
@@ -134,11 +124,14 @@ findGuard = \puzzle ->
             _ -> Continue state
 
 expect
-    when testPuzzle is
-        Err _ -> Bool.false
-        Ok puzzle ->
-            actual = findGuard puzzle
-            actual == Ok { position: { row: 1, col: 0 }, direction: Up }
+    test = \{} ->
+        puzzle = parsePuzzle?
+            """
+            .#
+            ^.
+            """
+        findGuard puzzle
+    test {} == Ok { position: { row: 1, col: 0 }, direction: Up }
 
 walkToObstacle : Puzzle, state, GuardLocation, (state, Index2D -> state) -> Result (state, GuardLocation) [Exits state]
 walkToObstacle = \puzzle, init, guard, visit ->
