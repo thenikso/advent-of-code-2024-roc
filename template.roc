@@ -12,9 +12,11 @@ import aoc.AoC {
     time: \{} -> Utc.now {} |> Task.map Utc.toMillisSinceEpoch,
 }
 
+day = "00"
+
 main =
-    AoC.solve! "05" 1 part1 # 7198
-    AoC.solve! "05" 2 part2 # 4230
+    AoC.solve! day 1 part1 #
+    AoC.solve! day 2 part2 #
 
 example =
     """

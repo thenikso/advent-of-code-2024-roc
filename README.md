@@ -77,3 +77,17 @@ result = (
 )?
 # `result` has the type of a, not Ok a because of the `?`
 ```
+
+Ended the day by adding execution time to solutions by copying a package and
+learning how to do create a `module` and `package`.
+
+## Day 6
+
+Using [`Array2D`](https://github.com/mulias/roc-array2d/tree/main) for this one.
+This is also an occasion to try `Set`s.
+
+Had some issues fixing a cryptinc type error inside a function. It turned out
+that I was using an argument as one type (wrongly), which made the inference assume that
+type for that argument, later I used as another type (the one I wanted it to be)
+and the resulting error was quite cryptic. It would have helped if the compiler
+said something like "I inferred this thing has this type from here".
