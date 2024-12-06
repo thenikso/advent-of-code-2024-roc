@@ -19,7 +19,7 @@ day = "06"
 
 main =
     AoC.solve! day 1 part1 # 4789
-    AoC.solve! day 2 part2 #
+    AoC.solve! day 2 part2 # 1304
 
 example =
     """
@@ -42,8 +42,8 @@ part1 = \input ->
     guard = findGuard? puzzle
     { rows, cols } = Array2D.shape puzzle
     visited = Set.withCapacity (rows * cols)
-    keepWalking = \(state, g) ->
-        when walkToObstacle puzzle state g is
+    keepWalking = \(set, g) ->
+        when walkToObstacle puzzle set g Set.insert is
             Ok res -> keepWalking res
             Err (Exits last) -> Set.len last
 
@@ -53,9 +53,27 @@ expect
     actual = part1 example
     actual == Ok 41
 
-part2 = \input -> None
+part2 = \input ->
+    puzzle = parsePuzzle? input
+    startPos = findGuard? puzzle
+    { path } = guardPath puzzle startPos
+    fullPath =
+        path
+        |> List.map (\p -> List.dropFirst p 1)
+        |> List.join
+    obstacles = List.walk fullPath (Set.withCapacity 1500) \state, pos ->
+        if pos == startPos.position || Set.contains state pos then
+            state
+        else
+            { array: newPuzzle } = Array2D.replace puzzle pos Obstruct
+            { loop } = guardPath newPuzzle startPos
+            if loop then
+                Set.insert state pos
+            else
+                state
+    Ok (Set.len obstacles)
 
-expect part2 example == None
+expect part2 example == Ok 6
 
 # Utils
 
@@ -122,8 +140,8 @@ expect
             actual = findGuard puzzle
             actual == Ok { position: { row: 1, col: 0 }, direction: Up }
 
-walkToObstacle : Puzzle, Set Index2D, GuardLocation -> Result (Set Index2D, GuardLocation) [Exits (Set Index2D)]
-walkToObstacle = \puzzle, visited, guard ->
+walkToObstacle : Puzzle, state, GuardLocation, (state, Index2D -> state) -> Result (state, GuardLocation) [Exits state]
+walkToObstacle = \puzzle, init, guard, visit ->
     guardExited : Index2D -> Bool
     guardExited = \index ->
         if guard.direction == Up || guard.direction == Down then
@@ -133,7 +151,7 @@ walkToObstacle = \puzzle, visited, guard ->
 
     Array2D.walkUntil
         puzzle
-        (Ok (visited, guard))
+        (Ok (init, guard))
         {
             direction: if guard.direction == Up || guard.direction == Left then Backwards else Forwards,
             orientation: if guard.direction == Up || guard.direction == Down then Cols else Rows,
@@ -168,7 +186,7 @@ walkToObstacle = \puzzle, visited, guard ->
                                 Continue
                                     (
                                         Ok (
-                                            Set.insert s.0 index,
+                                            visit s.0 index,
                                             { position: index, direction: s.1.direction },
                                         )
                                     )
@@ -179,7 +197,7 @@ expect
         |> Result.try \puzzle ->
             findGuard puzzle
             |> Result.try \guard ->
-                (visited, pos) = walkToObstacle? puzzle (Set.empty {}) guard
+                (visited, pos) = walkToObstacle? puzzle (Set.empty {}) guard Set.insert
                 Ok (Set.len visited, pos)
 
     actual
@@ -196,6 +214,7 @@ expect
                 puzzle
                 (Set.empty {})
                 { position: { row: 4, col: 1 }, direction: Up }
+                Set.insert
             Ok (Set.len visited, pos)
         |> Result.mapErr \err ->
             when err is
@@ -203,3 +222,83 @@ expect
                 _ -> 0
 
     actual == Err 5
+
+guardPath : Puzzle, GuardLocation -> { path : List (List Index2D), loop : Bool }
+guardPath = \puzzle, startLocation ->
+    keepWalking = \({ path, loop }, g) ->
+        when walkToObstacle puzzle [] g List.append is
+            Ok (section, endLocation) ->
+                if List.contains path section then
+                    { path, loop: Bool.true }
+                else
+                    keepWalking (
+                        { path: List.append path section, loop },
+                        endLocation,
+                    )
+
+            Err (Exits lastSection) ->
+                { path: List.append path lastSection, loop: Bool.false }
+
+    keepWalking ({ path: [], loop: Bool.false }, startLocation)
+
+expect
+    test = \{} ->
+        puzzle = parsePuzzle?
+            """
+            #..
+            ...
+            ^..
+            """
+        guard = findGuard? puzzle
+        Ok (guardPath puzzle guard)
+    actual = test {}
+    actual
+    == Ok {
+        path: [
+            [
+                { row: 2, col: 0 },
+                { row: 1, col: 0 },
+            ],
+            [
+                { row: 1, col: 0 },
+                { row: 1, col: 1 },
+                { row: 1, col: 2 },
+            ],
+        ],
+        loop: Bool.false,
+    }
+
+expect
+    test = \{} ->
+        puzzle = parsePuzzle?
+            """
+            .#..
+            ...#
+            #^..
+            ..#.
+            """
+        guard = findGuard? puzzle
+        Ok (guardPath puzzle guard)
+    actual = test {}
+    actual
+    == Ok {
+        path: [
+            [
+                { row: 2, col: 1 },
+                { row: 1, col: 1 },
+            ],
+            [
+                { row: 1, col: 1 },
+                { row: 1, col: 2 },
+            ],
+            [
+                { row: 1, col: 2 },
+                { row: 2, col: 2 },
+            ],
+            [
+                { row: 2, col: 2 },
+                { row: 2, col: 1 },
+            ],
+        ],
+        loop: Bool.true,
+    }
