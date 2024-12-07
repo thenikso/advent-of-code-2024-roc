@@ -16,7 +16,7 @@ day = "07"
 
 main =
     AoC.solve! day 1 part1 # 3598800864292
-    AoC.solve! day 2 part2 #
+    AoC.solve! day 2 part2 # 340362529351427
 
 example =
     """
@@ -70,39 +70,20 @@ expect
     actual == Ok 3749
 
 part2 = \input ->
-    puzzle = parsePuzzle? input
-    valids =
-        puzzle
-        |> List.keepIf \(target, nums) ->
-            len = List.len nums - 1
-            ops = cartesianProduct [Add, Mul, Conc] len
-            valid = List.walkUntil ops Bool.false \_, op ->
-                res = applyOps nums op \a, o, b ->
-                    n =
-                        (
-                            when o is
-                                Add -> Ok (a + b)
-                                Mul -> Ok (a * b)
-                                Conc ->
-                                    Str.concat (Num.toStr a) (Num.toStr b)
-                                    |> Str.toU64
-                                    |> Result.mapErr \_ -> Invalid
-                        )?
-                    if n > target then
-                        Err Invalid
-                    else
-                        Ok n
-                when res is
-                    Ok n ->
-                        if n == target then
-                            Break Bool.true
-                        else
-                            Continue Bool.false
+    parsePuzzle? input
+    |> List.keepIf \(target, nums) ->
+        when nums is
+            [first, .. as rest] ->
+                isValidCalibration first rest target [
+                    \a, b -> a + b,
+                    \a, b -> a * b,
+                    \a, b ->
+                        when Str.concat (Num.toStr a) (Num.toStr b) |> Str.toU64 is
+                            Ok n -> n
+                            Err _ -> 0,
+                ]
 
-                    Err _ -> Continue Bool.false
-            valid
-
-    valids
+            _ -> Bool.false
     |> List.map \(target, _) -> target
     |> List.sum
     |> Ok
@@ -176,3 +157,27 @@ applyOps = \nums, ops, apply ->
 expect
     actual = applyOps [1, 2, 3] [Add, Add] \a, _op, b -> Ok (a + b)
     actual == Ok 6
+
+isValidCalibration : U64, List U64, U64, List (U64, U64 -> U64) -> Bool
+isValidCalibration = \current, nums, target, ops ->
+    List.walkUntil ops Bool.false \_, op ->
+        when nums is
+            [] -> Break (target == current)
+            [first, .. as rest] ->
+                newCurrent = op current first
+                if newCurrent > target then
+                    Break Bool.false
+                else
+                    res = isValidCalibration
+                        newCurrent
+                        rest
+                        target
+                        ops
+                    if res then
+                        Break res
+                    else
+                        Continue res
+
+expect
+    actual = isValidCalibration 1 [2, 3] 9 [\a, b -> a + b, \a, b -> a * b]
+    actual == Bool.true
