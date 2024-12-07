@@ -69,9 +69,47 @@ expect
     actual = part1 example
     actual == Ok 3749
 
-part2 = \input -> None
+part2 = \input ->
+    puzzle = parsePuzzle? input
+    valids =
+        puzzle
+        |> List.keepIf \(target, nums) ->
+            len = List.len nums - 1
+            ops = cartesianProduct [Add, Mul, Conc] len
+            valid = List.walkUntil ops Bool.false \_, op ->
+                res = applyOps nums op \a, o, b ->
+                    n =
+                        (
+                            when o is
+                                Add -> Ok (a + b)
+                                Mul -> Ok (a * b)
+                                Conc ->
+                                    Str.concat (Num.toStr a) (Num.toStr b)
+                                    |> Str.toU64
+                                    |> Result.mapErr \_ -> Invalid
+                        )?
+                    if n > target then
+                        Err Invalid
+                    else
+                        Ok n
+                when res is
+                    Ok n ->
+                        if n == target then
+                            Break Bool.true
+                        else
+                            Continue Bool.false
 
-expect part2 example == None
+                    Err _ -> Continue Bool.false
+            valid
+
+    valids
+    |> List.map \(target, _) -> target
+    |> List.sum
+    |> Ok
+
+expect
+    actual = part2 example
+    actual == Ok 11387
 
 # Utils
 
