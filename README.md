@@ -91,3 +91,5 @@ that I was using an argument as one type (wrongly), which made the inference ass
 type for that argument, later I used as another type (the one I wanted it to be)
 and the resulting error was quite cryptic. It would have helped if the compiler
 said something like "I inferred this thing has this type from here".
+
+## Day 7
