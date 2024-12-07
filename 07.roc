@@ -69,6 +69,7 @@ expect
     actual = part1 example
     actual == Ok 3749
 
+# Using a different approach for part 2 after seeing other solutions
 part2 = \input ->
     parsePuzzle? input
     |> List.keepIf \(target, nums) ->
@@ -78,9 +79,8 @@ part2 = \input ->
                     \a, b -> a + b,
                     \a, b -> a * b,
                     \a, b ->
-                        when Str.concat (Num.toStr a) (Num.toStr b) |> Str.toU64 is
-                            Ok n -> n
-                            Err _ -> 0,
+                        ord = numOrder b
+                        a * 10 * ord + b
                 ]
 
             _ -> Bool.false
@@ -160,16 +160,15 @@ expect
 
 isValidCalibration : U64, List U64, U64, List (U64, U64 -> U64) -> Bool
 isValidCalibration = \current, nums, target, ops ->
-    List.walkUntil ops Bool.false \_, op ->
-        when nums is
-            [] -> Break (target == current)
-            [first, .. as rest] ->
-                newCurrent = op current first
-                if newCurrent > target then
-                    Break Bool.false
-                else
+    if current > target then
+        Bool.false
+    else
+        List.walkUntil ops Bool.false \_, op ->
+            when nums is
+                [] -> Break (target == current)
+                [first, .. as rest] ->
                     res = isValidCalibration
-                        newCurrent
+                        (op current first)
                         rest
                         target
                         ops
@@ -181,3 +180,14 @@ isValidCalibration = \current, nums, target, ops ->
 expect
     actual = isValidCalibration 1 [2, 3] 9 [\a, b -> a + b, \a, b -> a * b]
     actual == Bool.true
+
+numOrder = \num ->
+    ord = \n, acc ->
+        next = n // 10
+        if next == 0 then
+        acc
+        else
+            ord next (acc * 10)
+    ord num 1
+
+expect numOrder 123 == 100
