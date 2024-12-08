@@ -93,3 +93,14 @@ and the resulting error was quite cryptic. It would have helped if the compiler
 said something like "I inferred this thing has this type from here".
 
 ## Day 7
+
+Sometimes I feel the lack of a regular loop but it look like they may be
+[coming](https://roc.zulipchat.com/#narrow/stream/304641-ideas/topic/.60for.60.20and.20.60var.60/near/471593157).
+
+## Day 8
+
+I'd have used variable shadowing, only mildly annoing but it can be error prone.
+Luckly that should be [coming too](https://docs.google.com/document/d/1Ly5Cp_Z7dY8KLQkkDYZlGCldxQj4jLzZ0vIeB-F8lJI/edit?tab=t.0#heading=h.uw2tdxn2cvjs).
+
+I was loosing it trying to do aritmethic with U64, just converted to I32 and
+all is good now.
