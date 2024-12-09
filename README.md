@@ -104,3 +104,12 @@ Luckly that should be [coming too](https://docs.google.com/document/d/1Ly5Cp_Z7d
 
 I was loosing it trying to do aritmethic with U64, just converted to I32 and
 all is good now.
+
+I could have used `Num.subWrap` but didn't know it existed!
+
+There could probably have been a use for a `scan` or sliding window like operation
+as [discussed in the forums](https://roc.zulipchat.com/#narrow/channel/304641-ideas/topic/List.2Escan).
+
+## Day 9
+
+Working with recursion and `List.walk` is so exausting instead of using a loop xD
