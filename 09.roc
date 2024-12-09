@@ -15,7 +15,7 @@ import aoc.AoC {
 day = "09"
 
 main =
-    AoC.solve! day 1 part1 #
+    AoC.solve! day 1 part1 # 6344673854800
     AoC.solve! day 2 part2 #
 
 example =
@@ -26,7 +26,7 @@ example =
 part1 = \input ->
     input
     |> parsePuzzle
-    |> compactDisk
+    |> diskCompact
     |> diskChecksum
     |> Ok
 
@@ -38,134 +38,96 @@ expect part2 example == None
 
 # Utils
 
-File : { index : U64, size : U64, freeTrail : U64 }
-Puzzle : List File
+Block : [Empty, File U64]
+Puzzle : List Block
 
-parsePuzzle : Str -> Puzzle
+printPuzzle = \puzzle ->
+    List.walk puzzle "" \acc, block ->
+        when block is
+            File i -> Str.concat acc (Num.toStr i)
+            Empty -> Str.concat acc "."
+
 parsePuzzle = \text ->
-    disk =
-        text
-        |> Str.trimEnd
-        |> Str.toUtf8
-        |> List.append '0'
-    disk
+    text
+    |> Str.trimEnd
+    |> Str.toUtf8
+    |> List.append '0'
     |> List.walk
         {
-            result: List.withCapacity (List.len disk // 2),
             fileIndex: 0,
             fileSize: 0,
+            result: List.withCapacity 1000,
         }
-        \state, blocks ->
-            size = blocks - '0' |> Num.toU64
-            if state.fileSize == 0 then
-                { state & fileSize: size }
-            else
+        \state, char ->
+            size = char - '0' |> Num.toU64
+            if state.fileSize > 0 then
+                result1 = diskInsert state.result (File state.fileIndex) state.fileSize
+                result2 = diskInsert result1 Empty size
                 {
-                    result: List.append state.result {
-                        index: state.fileIndex,
-                        size: state.fileSize,
-                        freeTrail: size,
-                    },
                     fileIndex: state.fileIndex + 1,
                     fileSize: 0,
+                    result: result2,
                 }
+            else
+                { state & fileSize: size }
     |> .result
 
 expect
-    actual = parsePuzzle "12345"
-    actual
-    == [
-        { index: 0, size: 1, freeTrail: 2 },
-        { index: 1, size: 3, freeTrail: 4 },
-        { index: 2, size: 5, freeTrail: 0 },
-    ]
+    actual = parsePuzzle "12345" |> printPuzzle
+    actual == "0..111....22222"
 
-compactDisk : Puzzle -> Puzzle
-compactDisk = \puzzle ->
-    puzzle
-    |> List.walkBackwardsUntil
-        (
-            {
-                result: List.withCapacity (List.len puzzle),
-                index: List.len puzzle - 1,
-                forwardIndex: 0,
-                spaceToFill: 0,
-            }
-        )
-        \state, file ->
-            # Get new space to fill
-            (spaceToFill1, result1, forwardIndex1) =
-                if state.spaceToFill > 0 then
-                    (state.spaceToFill, state.result, state.forwardIndex)
-                else
-                    claimFreeSpace puzzle state.forwardIndex state.result
-            # Fill all space with current file
-            # and continue getting more space if file is bigger than available space
-            (spaceToFill2, result2, forwardIndex2) =
-                consumeFreeSpace puzzle forwardIndex1 result1 file spaceToFill1
-            # Next backward file
-            newState = {
-                result: result2,
-                index: state.index - 1,
-                forwardIndex: forwardIndex2,
-                spaceToFill: spaceToFill2,
-            }
-            if forwardIndex2 == state.index then
-                Break newState
-            else
-                Continue newState
-    |> .result
-
-claimFreeSpace = \puzzle, forwardIndex, result ->
-    List.walkFromUntil
-        puzzle
-        forwardIndex
-        (0, result, forwardIndex)
-        \(_, res, index), forwardFile ->
-            nextRes = List.append res { forwardFile & freeTrail: 0 }
-            if forwardFile.freeTrail > 0 then
-                Break (forwardFile.freeTrail, nextRes, index + 1)
-            else
-                Continue (0, nextRes, index + 1)
-
-consumeFreeSpace = \puzzle, forwardIndex, result, file, spaceToFill ->
-    fillFile = { file & freeTrail: 0, size: Num.min spaceToFill file.size }
-    result1 = List.append result fillFile
-    if (file.size - fillFile.size) > 0 then
-        dbg (file.size - fillFile.size)
-        (newFree, result2, forwardIndex2) = claimFreeSpace puzzle forwardIndex result1
-        remainingFile = { file & freeTrail: 0, size: file.size - fillFile.size }
-        consumeFreeSpace puzzle forwardIndex2 result2 remainingFile newFree
+diskInsert : Puzzle, Block, U64 -> Puzzle
+diskInsert = \disk, block, n ->
+    if n == 0 then
+        disk
     else
-        remainingSpace = if spaceToFill > fillFile.size then spaceToFill - fillFile.size else 0
-        (remainingSpace, result1, forwardIndex)
+        diskInsert (List.append disk block) block (n - 1)
+
+diskCompact : Puzzle -> Puzzle
+diskCompact = \disk ->
+    diskSize = List.len disk
+    List.walkBackwardsUntil
+        disk
+        {
+            backwardIndex: diskSize - 1,
+            forwardIndex: 0,
+            result: disk,
+        }
+        \state, block ->
+            if block == Empty then
+                Continue { state & backwardIndex: state.backwardIndex - 1 }
+            else
+                nextForwardIndex =
+                    List.walkFromUntil
+                        disk
+                        state.forwardIndex
+                        state.forwardIndex
+                        \index, b ->
+                            when b is
+                                Empty -> Break index
+                                _ -> Continue (index + 1)
+                if nextForwardIndex >= state.backwardIndex then
+                    Break state
+                else
+                    result = List.swap state.result nextForwardIndex state.backwardIndex
+                    Continue {
+                        backwardIndex: state.backwardIndex - 1,
+                        forwardIndex: nextForwardIndex + 1,
+                        result,
+                    }
+    |> .result
 
 expect
-    actual = compactDisk (parsePuzzle "12345")
-    actual
-    == [
-        { index: 0, size: 1, freeTrail: 0 },
-        { index: 2, size: 2, freeTrail: 0 },
-        { index: 1, size: 3, freeTrail: 0 },
-        { index: 2, size: 3, freeTrail: 0 },
-    ]
+    actual = "12345" |> parsePuzzle |> diskCompact |> printPuzzle
+    actual == "022111222......"
 
 diskChecksum : Puzzle -> U64
-diskChecksum = \puzzle ->
-    List.walk
-        puzzle
-        { blockPosition: 0, checksum: 0 }
-        \{ blockPosition, checksum }, { index: fileIndex, size: fileSize } ->
-            endBlockPosition = blockPosition + fileSize
-            partial =
-                List.range { start: At blockPosition, end: Before endBlockPosition }
-                |> List.walk 0 \sum, pos -> sum + (pos * fileIndex)
-            {
-                blockPosition: endBlockPosition,
-                checksum: checksum + partial,
-            }
-    |> .checksum
+diskChecksum = \disk ->
+    List.walkWithIndexUntil disk 0 \sum, block, index ->
+        when block is
+            File id -> Continue (sum + (index * id))
+            Empty -> Break sum
 
 expect
-    actual = diskChecksum (compactDisk (parsePuzzle "12345"))
+    actual = "12345" |> parsePuzzle |> diskCompact |> diskChecksum
     actual == 60

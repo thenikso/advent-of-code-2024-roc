@@ -113,3 +113,6 @@ as [discussed in the forums](https://roc.zulipchat.com/#narrow/channel/304641-id
 ## Day 9
 
 Working with recursion and `List.walk` is so exausting instead of using a loop xD
+
+Had to redo part 1 because I got a infinite loop in recursion and I didn't want
+to debug it.
