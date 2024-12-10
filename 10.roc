@@ -40,14 +40,20 @@ part1 = \input ->
     puzzle
     |> findTrailheads
     |> List.walk 0 \sum, head ->
-        sum + (trailScore puzzle head)
+        sum + (trailScoreAndRating puzzle head).score
     |> Ok
 
 expect part1 example == Ok 36
 
-part2 = \input -> None
+part2 = \input ->
+    puzzle = parsePuzzle input
+    puzzle
+    |> findTrailheads
+    |> List.walk 0 \sum, head ->
+        sum + (trailScoreAndRating puzzle head).rating
+    |> Ok
 
-expect part2 example == None
+expect part2 example == Ok 81
 
 # Utils
 
@@ -109,24 +115,24 @@ expect
     actual = crossCoords { col: 2, row: 0 }
     actual == [{ col: 3, row: 0 }, { col: 2, row: 1 }, { col: 1, row: 0 }]
 
-trailScore : Puzzle, Index2D -> U64
-trailScore = \puzzle, head ->
-    List.range { start: After 0, end: At 9 }
-    |> List.walkUntil [head] \trails, targetHeight ->
-        if List.len trails == 0 then
-            Break trails
-        else
-            nextHeads =
-                trails
-                |> List.map \h ->
-                    h
-                    |> crossCoords
-                    |> List.keepIf \i ->
-                        Array2D.get puzzle i == Ok targetHeight
-                |> List.join
-            Continue nextHeads
-    |> Set.fromList
-    |> Set.len
+trailScoreAndRating : Puzzle, Index2D -> { score : U64, rating : U64 }
+trailScoreAndRating = \puzzle, head ->
+    nines =
+        List.range { start: After 0, end: At 9 }
+        |> List.walkUntil [head] \trails, targetHeight ->
+            if List.len trails == 0 then
+                Break trails
+            else
+                nextHeads =
+                    trails
+                    |> List.map \h ->
+                        h
+                        |> crossCoords
+                        |> List.keepIf \i ->
+                            Array2D.get puzzle i == Ok targetHeight
+                    |> List.join
+                Continue nextHeads
+    { score: Set.fromList nines |> Set.len, rating: nines |> List.len }
 
 expect
     example1 =
@@ -136,6 +142,8 @@ expect
         8765
         9876
         """
-    actual = example1 |> parsePuzzle |> trailScore { col: 0, row: 0 }
+    actual = example1 |> parsePuzzle |> trailScoreAndRating { col: 0, row: 0 } |> .score
     actual == 1
-expect example |> parsePuzzle |> trailScore { col: 2, row: 0 } == 5
+expect
+    actual = example |> parsePuzzle |> trailScoreAndRating { col: 2, row: 0 }
+    actual == { score: 5, rating: 20 }
