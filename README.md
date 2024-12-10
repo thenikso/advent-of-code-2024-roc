@@ -116,3 +116,7 @@ Working with recursion and `List.walk` is so exausting instead of using a loop x
 
 Had to redo part 1 because I got a infinite loop in recursion and I didn't want
 to debug it.
+
+## Day 10
+
+Really useful to get type annotation on the editor when hovering a variable.
