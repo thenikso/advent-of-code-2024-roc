@@ -120,3 +120,9 @@ to debug it.
 ## Day 10
 
 Really useful to get type annotation on the editor when hovering a variable.
+
+It would be great to have a list of possible function when typing `|> ` too.
+
+## Day 11
+
+Attempting to write a LinkedList but List sufficed.
