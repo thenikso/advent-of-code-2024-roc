@@ -32,9 +32,11 @@ part1 = \input ->
 
 expect part1 example == Ok 55312
 
-part2 = \input -> None
-
-expect part2 example == None
+part2 = \input ->
+    input
+    |> parsePuzzle?
+    |> blinkAndCount 75
+    |> Ok
 
 # Utils
 
@@ -88,3 +90,34 @@ blinkN = \puzzle, n ->
         blinkN (blinkOnce puzzle) (n - 1)
 
 expect blinkN [125, 17] 3 == [512072, 1, 20, 24, 28676032]
+
+# Couldn't figure this out, had to copy from https://gist.github.com/jonwarghed/902ea952577c298c60d659c39b54c057
+blinkAndCount : Puzzle, U64 -> U64
+blinkAndCount = \stones, blinkCount ->
+    dictAdd = \d, k, n ->
+        Dict.update d k \v ->
+            when v is
+                Ok c -> Ok (c + n)
+                Err _ -> Ok n
+    blink = \stonesDict ->
+        stonesDict
+        |> Dict.walk (Dict.empty {}) \acc, stone, count ->
+            if stone == 0 then
+                dictAdd acc 1 count
+            else
+                dc = digitsLen stone
+                if dc % 2 != 0 then
+                    dictAdd acc (stone * 2024) count
+                else
+                    order = Num.powInt 10 (dc // 2)
+                    acc
+                    |> dictAdd (stone // order) count
+                    |> dictAdd (stone % order) count
+    stonesAsDict =
+        stones
+        |> List.map \s -> (s, 1)
+        |> Dict.fromList
+    List.range { start: At 1, end: At blinkCount }
+    |> List.walk stonesAsDict \acc, _ -> blink acc
+    |> Dict.values
+    |> List.sum
